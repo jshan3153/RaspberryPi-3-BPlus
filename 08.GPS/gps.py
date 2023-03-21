@@ -14,12 +14,17 @@ def GPS_Info():
     nmea_time = []
     nmea_latitude = []
     nmea_longitude = []
-    nmea_time = NMEA_buff[0]                    #extract time from GPGGA string
-    nmea_latitude = NMEA_buff[1]                #extract latitude from GPGGA string
-    nmea_longitude = NMEA_buff[3]               #extract longitude from GPGGA string
+    try:
+        nmea_time = NMEA_buff[0]                    #extract time from GPGGA string
+        nmea_latitude = NMEA_buff[1]                #extract latitude from GPGGA string
+        nmea_longitude = NMEA_buff[3]               #extract longitude from GPGGA string
+        satelite = NMEA_buff[6]                     #extract gps satelite from GPGGA string
+    except:
+        print(NMEA_buff)
     
     print("NMEA Time: ", nmea_time,'\n')
     print ("NMEA Latitude:", nmea_latitude,"NMEA Longitude:", nmea_longitude,'\n')
+    print("Satelite : ", satelite, '\n')
     
     lat = float(nmea_latitude)                  #convert string into float for calculation
     longi = float(nmea_longitude)               #convertr string into float for calculation
@@ -38,7 +43,7 @@ def convert_to_degrees(raw_value):
     
 
 
-gpgga_info = "$GNGGA,"
+gpgga_info = "$GPGGA,"
 
 ser = serial.Serial(                 
         port='/dev/ttyS0',         
@@ -58,16 +63,22 @@ try:
         received_data = (str)(ser.readline())                   #read NMEA string received
         #print(received_data)
         #received_data = 0
+        
         GPGGA_data_available = received_data.find(gpgga_info)   #check for NMEA GPGGA string                 
+        
         if (GPGGA_data_available>0):
-            GPGGA_buffer = received_data.split("$GNGGA,",1)[1]  #store data coming after "$GPGGA," string 
+            GPGGA_buffer = received_data.split("$GPGGA,",1)[1]  #store data coming after "$GPGGA," string
             NMEA_buff = (GPGGA_buffer.split(','))               #store comma separated data in buffer
-            GPS_Info()                                          #get time, latitude, longitude
-
-            print("lat in degrees:", lat_in_degrees," long in degree: ", long_in_degrees, '\n')
-            map_link = 'http://maps.google.com/?q=' + lat_in_degrees + ',' + long_in_degrees    #create link to plot location on Google map
-            print("<<<<<<<<press ctrl+c to plot location on google maps>>>>>>\n")               #press ctrl+c to plot on map and exit 
-            print("------------------------------------------------------------\n")
+            if not NMEA_buff[5]:
+                print('no fix flag\n')
+            elif NMEA_buff[5] != '0':
+                GPS_Info()                                          #get time, latitude, longitude
+                print("lat in degrees:", lat_in_degrees," long in degree: ", long_in_degrees, '\n')
+                map_link = 'http://maps.google.com/?q=' + lat_in_degrees + ',' + long_in_degrees    #create link to plot location on Google map
+                print("<<<<<<<<press ctrl+c to plot location on google maps>>>>>>\n")               #press ctrl+c to plot on map and exit 
+                print("------------------------------------------------------------\n")
+            else:
+                print('not fixed :', NMEA_buff)
 
 except KeyboardInterrupt:
     webbrowser.open(map_link)        #open current position information in google map
