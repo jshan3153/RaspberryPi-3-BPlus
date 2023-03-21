@@ -21,7 +21,6 @@ def GPS_Info():
     nmea_time = []
     nmea_latitude = []
     nmea_longitude = []
-    satelite = 0
     try:
         nmea_time = NMEA_buff[0]                    #extract time from GPGGA string
         nmea_latitude = NMEA_buff[1]                #extract latitude from GPGGA string
