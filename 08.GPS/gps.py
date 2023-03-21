@@ -7,6 +7,13 @@ from time import sleep
 import webbrowser           #import package for opening link in browser
 import sys                  #import system package
 
+gpgga_info = "$GPGGA,"
+
+GPGGA_buffer = 0
+NMEA_buff = 0
+lat_in_degrees = 0
+long_in_degrees = 0
+
 def GPS_Info():
     global NMEA_buff
     global lat_in_degrees
@@ -14,6 +21,7 @@ def GPS_Info():
     nmea_time = []
     nmea_latitude = []
     nmea_longitude = []
+    satelite = 0
     try:
         nmea_time = NMEA_buff[0]                    #extract time from GPGGA string
         nmea_latitude = NMEA_buff[1]                #extract latitude from GPGGA string
@@ -40,12 +48,9 @@ def convert_to_degrees(raw_value):
     position = degrees + mm_mmmm
     position = "%.4f" %(position)
     return position
-    
 
-
-gpgga_info = "$GPGGA,"
-
-ser = serial.Serial(                 
+if __name__ == '__main__':
+    ser = serial.Serial(                 
         port='/dev/ttyS0',         
         baudrate=9600,   
         parity=serial.PARITY_NONE,
@@ -53,33 +58,28 @@ ser = serial.Serial(
         bytesize=serial.EIGHTBITS,
         timeout=1
         )
-GPGGA_buffer = 0
-NMEA_buff = 0
-lat_in_degrees = 0
-long_in_degrees = 0
-
-try:
-    while True:
-        received_data = (str)(ser.readline())                   #read NMEA string received
-        #print(received_data)
-        #received_data = 0
+    try:
+        while True:
+            received_data = (str)(ser.readline())                   #read NMEA string received
+            #print(received_data)
+            #received_data = 0
         
-        GPGGA_data_available = received_data.find(gpgga_info)   #check for NMEA GPGGA string                 
+            GPGGA_data_available = received_data.find(gpgga_info)   #check for NMEA GPGGA string                 
         
-        if (GPGGA_data_available>0):
-            GPGGA_buffer = received_data.split("$GPGGA,",1)[1]  #store data coming after "$GPGGA," string
-            NMEA_buff = (GPGGA_buffer.split(','))               #store comma separated data in buffer
-            if not NMEA_buff[5]:
-                print('no fix flag\n')
-            elif NMEA_buff[5] != '0':
-                GPS_Info()                                          #get time, latitude, longitude
-                print("lat in degrees:", lat_in_degrees," long in degree: ", long_in_degrees, '\n')
-                map_link = 'http://maps.google.com/?q=' + lat_in_degrees + ',' + long_in_degrees    #create link to plot location on Google map
-                print("<<<<<<<<press ctrl+c to plot location on google maps>>>>>>\n")               #press ctrl+c to plot on map and exit 
-                print("------------------------------------------------------------\n")
-            else:
-                print('not fixed :', NMEA_buff)
+            if (GPGGA_data_available>0):
+                GPGGA_buffer = received_data.split("$GPGGA,",1)[1]  #store data coming after "$GPGGA," string
+                NMEA_buff = (GPGGA_buffer.split(','))               #store comma separated data in buffer
+                if not NMEA_buff[5]:
+                    print('no fix flag\n')
+                elif NMEA_buff[5] != '0':
+                    GPS_Info()                                          #get time, latitude, longitude
+                    print("lat in degrees:", lat_in_degrees," long in degree: ", long_in_degrees, '\n')
+                    map_link = 'http://maps.google.com/?q=' + lat_in_degrees + ',' + long_in_degrees    #create link to plot location on Google map
+                    print("<<<<<<<<press ctrl+c to plot location on google maps>>>>>>\n")               #press ctrl+c to plot on map and exit 
+                    print("------------------------------------------------------------\n")
+                else:
+                    print('not fixed :', NMEA_buff)
 
-except KeyboardInterrupt:
-    webbrowser.open(map_link)        #open current position information in google map
-    sys.exit(0)
+    except KeyboardInterrupt:
+        webbrowser.open(map_link)        #open current position information in google map
+        sys.exit(0)
