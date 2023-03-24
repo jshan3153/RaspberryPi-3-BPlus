@@ -6,6 +6,7 @@ import serial               #import serial pacakge
 from time import sleep
 import webbrowser           #import package for opening link in browser
 import sys                  #import system package
+import RPi.GPIO as GPIO
 
 gpgga_info = "$GPGGA,"
 
@@ -13,6 +14,8 @@ GPGGA_buffer = 0
 NMEA_buff = 0
 lat_in_degrees = 0
 long_in_degrees = 0
+error = 0
+led = 0
 
 def GPS_Info():
     global NMEA_buff
@@ -28,6 +31,7 @@ def GPS_Info():
         satelite = NMEA_buff[6]                     #extract gps satelite from GPGGA string
     except:
         print(NMEA_buff)
+        return
     
     print("NMEA Time: ", nmea_time,'\n')
     print ("NMEA Latitude:", nmea_latitude,"NMEA Longitude:", nmea_longitude,'\n')
@@ -57,6 +61,21 @@ if __name__ == '__main__':
         bytesize=serial.EIGHTBITS,
         timeout=1
         )
+    
+    # GPIO setup
+    GPIO.setwarnings(False)
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setup(36, GPIO.OUT)
+    GPIO.setup(37, GPIO.OUT)
+    GPIO.setup(38, GPIO.OUT)
+    GPIO.setup(40, GPIO.OUT)
+
+    GPIO.output(37, GPIO.HIGH)
+
+    GPIO.output(36, GPIO.LOW)
+    GPIO.output(38, GPIO.LOW)
+    GPIO.output(40, GPIO.LOW)
+    
     try:
         while True:
             received_data = (str)(ser.readline())                   #read NMEA string received
@@ -66,19 +85,41 @@ if __name__ == '__main__':
             GPGGA_data_available = received_data.find(gpgga_info)   #check for NMEA GPGGA string                 
         
             if (GPGGA_data_available>0):
-                GPGGA_buffer = received_data.split("$GPGGA,",1)[1]  #store data coming after "$GPGGA," string
-                NMEA_buff = (GPGGA_buffer.split(','))               #store comma separated data in buffer
-                if not NMEA_buff[5]:
-                    print('no fix flag\n')
-                elif NMEA_buff[5] != '0':
-                    GPS_Info()                                          #get time, latitude, longitude
-                    print("lat in degrees:", lat_in_degrees," long in degree: ", long_in_degrees, '\n')
-                    map_link = 'http://maps.google.com/?q=' + lat_in_degrees + ',' + long_in_degrees    #create link to plot location on Google map
-                    print("<<<<<<<<press ctrl+c to plot location on google maps>>>>>>\n")               #press ctrl+c to plot on map and exit 
-                    print("------------------------------------------------------------\n")
+                comma_count = received_data.count(',')
+                if(comma_count<13):
+                    error += 1
+                    print('error %d' % error)
                 else:
-                    print('not fixed :', NMEA_buff)
+                    GPGGA_buffer = received_data.split("$GPGGA,",1)[1]  #store data coming after "$GPGGA," string
+                    NMEA_buff = (GPGGA_buffer.split(','))               #store comma separated data in buffer
+                    #check null buffer
+                    if not NMEA_buff[5]:
+                        print('no fix flag\n')
+                    elif NMEA_buff[5] != '0':
+                        GPS_Info()                                          #get time, latitude, longitude
+                        print("lat in degrees:", lat_in_degrees," long in degree: ", long_in_degrees, '\n')
+                        #map_link = 'http://maps.google.com/?q=' + lat_in_degrees + ',' + long_in_degrees    #create link to plot location on Google map
+                        #print("<<<<<<<<press ctrl+c to plot location on google maps>>>>>>\n")               #press ctrl+c to plot on map and exit 
+                        #print("------------------------------------------------------------\n")
+                        GPIO.output(38, GPIO.LOW)
+                        
+                        if led == 0:
+                            GPIO.output(40, GPIO.HIGH)
+                            led = 1
+                        else:
+                            GPIO.output(40, GPIO.LOW)
+                            led = 0
+
+                    else:
+                        print('not fixed :', NMEA_buff)
+                        GPIO.output(38, GPIO.HIGH)
+                        if led:
+                            GPIO.output(40, GPIO.LOW)
+           
+            received_data = 0
 
     except KeyboardInterrupt:
-        webbrowser.open(map_link)        #open current position information in google map
+        #webbrowser.open(map_link)        #open current position information in google map
+        GPIO.cleanup()
         sys.exit(0)
+        
