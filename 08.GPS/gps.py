@@ -127,7 +127,7 @@ def main():
                         if led:
                             GPIO.output(40, GPIO.LOW)
                             
-                GPGGA_data_available
+                GPGGA_data_available = 0
            
             received_data = 0
 
