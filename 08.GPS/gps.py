@@ -95,6 +95,7 @@ def main():
         
             if (GPGGA_data_available>0):
                 comma_count = received_data.count(',')
+                
                 if(comma_count<13):
                     error += 1
                     print('error %d' % error)
@@ -104,6 +105,7 @@ def main():
                     #check null buffer
                     if not NMEA_buff[5]:
                         print('no fix flag\n')
+                        error += 1
                     elif NMEA_buff[5] != '0':
                         GPS_Info()                                          #get time, latitude, longitude
                         #print("lat in degrees:", lat_in_degrees," long in degree: ", long_in_degrees, '\n')
@@ -124,6 +126,8 @@ def main():
                         GPIO.output(38, GPIO.HIGH)
                         if led:
                             GPIO.output(40, GPIO.LOW)
+                            
+                GPGGA_data_available
            
             received_data = 0
 
