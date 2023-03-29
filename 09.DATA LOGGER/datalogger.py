@@ -160,7 +160,7 @@ def start_new_file():
     FileName = str("_".join(FileName.split(":")))
     FileName = str("_".join(FileName.split(".")))
     FileName = str("_".join(FileName.split("-")))
-    FileName = FileName + ".csv"
+    FileName = FileName + ".txt"
     FilePath = DRIVE_PATH + FileName
 
     # if the drive path exists...
@@ -221,11 +221,15 @@ def read_data():
             return
 
     valueString = ""        # reset the string that will collect chars
+    
+    '''
+    # 1 byte read 
     mchar = ser.read()      # read the next char from the serial port
 
     # continue reading characters and appending them to the valueString
     # (ignoring carriage returns) until a 'new line' character is received.
 
+    # compare 1 chracter
     while (mchar != b'\n'):
         if (mchar != b'\r' and mchar < b'DEL'):
             #valueString += mchar.decode('utf-8')
@@ -233,33 +237,42 @@ def read_data():
             valueString += str(mchar, 'utf-8')
         mchar = ser.read()
         #print(mchar)
-
+    '''
+        
     # after a full valueString has been assembled, create the timestamp
-    millis = int(round(time.time() * 1000))
-    rightNow = str(datetime.datetime.now()).split()
-    mDate = rightNow[0]
-    mTime = rightNow[1]
+    #millis = int(round(time.time() * 1000))
+    #rightNow = str(datetime.datetime.now()).split()
+    #mDate = rightNow[0]
+    #mTime = rightNow[1]
 
     # format the full string: index, timestamp, and data
     #fileString = str(format('%05d', dataIndex)) + ", " + str(mDate) + ", " + str(mTime) + ", " + valueString
-    fileString = str(format('%05d', dataIndex)) + ", " + str(mDate) + ", " + str(mTime) + ", " + valueString
+    #fileString = str(format('%05d', dataIndex)) + ", " + str(mDate) + ", " + str(mTime) + ", " + valueString
 
     # if execution reaches this point, then it is assumed that a valid USB is
     # inserted, and a file exists to write the data. Open the data file with
     # 'a' to append the new data, write the data string, close the file, and
     # increment the index.
-
     try:
 
         # before writing, double-check that the data logging file exists
 
         if (os.path.exists(FilePath)):
-            print(fileString)
-            fileString += "\r\n"
+            #print(fileString)
+            #fileString += '\n'
             mFile = open(FilePath, "a", 1)
-            mFile.write(fileString)
+            loop = 1
+            while loop:
+                x=ser.readline()
+                mFile.write(str(x)+'\n')
+                mFile.flush()
+                dataIndex += 1
+                x = ''
+                if (dataIndex >= MAX_ROWS_IN_FILE):
+                    loop = 0
+                    
             mFile.close()
-            dataIndex += 1
+            #dataIndex += 1
             validate_usb_write()
 
         # if the file doesn't exist, but the drive path still exsists, then it
@@ -297,7 +310,7 @@ def main():
     global ser
 
     ser = serial.Serial()
-    ser.baudrate = 9600
+    ser.baudrate = 115200
     ser.timeout = None
     ser.port = '/dev/ttyS0'
 

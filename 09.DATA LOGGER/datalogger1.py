@@ -2,7 +2,7 @@ import serial
 import datetime
 import time
 
-baudrate = 9600
+baudrate = 115200
 portaddr = "/dev/ttyS0"
 filename = "temperatureData.txt" # output file
 filemode = 'a'   #append
@@ -17,11 +17,12 @@ ser = serial.Serial(portaddr,baudrate)
 x=ser.readline() # first line of data is not complete
 
 while 1:
-    ts = time.time()
-    st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    #ts = time.time()
+    #st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
     x=ser.readline()
-    print(st + "," + str(x))  # print to screen
-    text_file.write(st + "," + str(x) +'\r\n')
+    #print(st + "," + str(x))  # print to screen
+    #text_file.write(st + "," + str(x) +'\r\n')
+    text_file.write(str(x)+'\n')
     text_file.flush()
     x=''
 
