@@ -7,6 +7,8 @@ from time import sleep
 import webbrowser           #import package for opening link in browser
 import sys                  #import system package
 import RPi.GPIO as GPIO
+import threading
+import http.client
 
 gpgga_info = "$GPGGA,"
 
@@ -16,12 +18,19 @@ lat_in_degrees = 0
 long_in_degrees = 0
 error = 0
 led = 0
+txtime = 0
+txlat = 0
+txlon = 0
+txready = 0
+usim = "89314404000652546186" #"89314404000476684577"
 
 def GPS_Info():
     global NMEA_buff
     global lat_in_degrees
     global long_in_degrees
-    nmea_time = []
+    global txready
+    global txtime, txlat, txlon
+    nmea_time = [] #list
     nmea_latitude = []
     nmea_longitude = []
     try:
@@ -45,6 +54,19 @@ def GPS_Info():
     
     print(nmea_time, "LAT:", lat_in_degrees, " LON:", long_in_degrees, "[", satelite, "]", '\n')
     
+    txtime = nmea_time.replace('.','')
+    txtime = txtime.ljust(10,'0')
+    #print(nmea_time, txtime)
+    
+    txlat = nmea_latitude.replace('.','')
+    #print(nmea_latitude, txlat)
+
+    txlon = nmea_longitude.replace('.','')
+    #print(nmea_longitude, txlon)
+    #payload = "8931440400065254618626990010010002000005000120000#"+txtime+txlat+txlon+"20#"
+    txready = 1
+    #print(payload)
+
 #convert raw NMEA string into degree decimal format   
 def convert_to_degrees(raw_value):
     decimal_value = raw_value/100.00
@@ -54,6 +76,37 @@ def convert_to_degrees(raw_value):
     position = "%.4f" %(position)
     return position
 
+def send_to_server(reportType):
+    print('send2server')
+    global txready
+    global txtime
+    global txlat
+    global txlon
+    
+    timer=threading.Timer(60, send_to_server, args=['1'])
+    timer.start()
+
+    conn = http.client.HTTPSConnection("protocol.cleancitynetworks.com")
+
+    headers = {
+      'Content-Type': 'text/plain'
+    }
+    
+    if txready == 1:
+        payload = usim + "26990010010304"+reportType+"00000800251000#"+txtime+'+'+txlat+'+'+txlon+"20#"
+        #print(payload)
+        txready = 0
+    else:
+        payload = usim + "26990010010304"+reportType+"00000800251000##"    
+        print('tx not ready')
+
+    conn.request("POST", "/ttk", payload, headers)
+    res = conn.getresponse()
+    data = res.read()
+    print(data.decode("utf-8"))
+
+    return
+    
 def main():
     global ser
     global lat_in_degrees
@@ -85,6 +138,9 @@ def main():
     GPIO.output(38, GPIO.LOW)
     GPIO.output(40, GPIO.LOW)
 
+    #set timer
+    send_to_server('0')
+    
     try:
         while True:
             received_data = (str)(ser.readline())                   #read NMEA string received
