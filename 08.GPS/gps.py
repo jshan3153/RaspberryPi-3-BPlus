@@ -22,7 +22,6 @@ txtime = 0
 txlat = 0
 txlon = 0
 txready = 0
-usim = "89314404000652546186" #"89314404000476684577"
 
 def GPS_Info():
     global NMEA_buff
@@ -82,6 +81,7 @@ def send_to_server(reportType):
     global txtime
     global txlat
     global txlon
+    usim = "89314404000652546186" #"89314404000476684577"
     
     timer=threading.Timer(60, send_to_server, args=['1'])
     timer.start()
