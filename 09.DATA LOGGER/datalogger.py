@@ -13,13 +13,14 @@ PathValid = False
 FileName = ""
 FilePath = ""
 dataIndex = 0
-
+driveSelect = 0
 FAIL_PATH = "/media/pi/USBDRIVE1/"
-DRIVE_PATH = "/media/pi/USBDRIVE/"
-AUTH_PATH = DRIVE_PATH + "validate.txt"
+USB_DRIVE_PATH = "/media/pi/USBDRIVE/"
+FLASH_DRIVE_PATH = "/home/pi/"
+AUTH_PATH = USB_DRIVE_PATH + "validate.txt"
 
 MAX_ROWS_IN_FILE = 65535
-
+BAUD_RATE = 115200
 
 """############################################################################
 
@@ -33,8 +34,8 @@ MAX_ROWS_IN_FILE = 65535
 
 def chk_usb_on_start():
 
-    global PathValid, DRIVE_PATH, AUTH_PATH
-
+    global PathValid, DRIVE_PATH, AUTH_PATH, driveSelect
+    retry = 0
 
     # if the "validate.txt" file is not found on startup, prompt the user to
     # install the appropriate usb drive
@@ -46,15 +47,27 @@ def chk_usb_on_start():
 
         while not (os.path.exists(AUTH_PATH)):
             sleep(1)
-            if (os.path.isdir(DRIVE_PATH)):
+            if (os.path.isdir(USB_DRIVE_PATH)):
                 if (os.path.isdir(FAIL_PATH)):
                     PathValid=True
                     validate_usb_write()
                     PathValid=False
                     print("To finish path correction, remove and replace USBDRIVE.")
+                else:
+                    retry+=1
+            else:
+                retry+=1
 
-    print("'USBDRIVE' with 'validate.txt' file found.")
-
+            print("retry : " , retry, "\r\n")
+            
+            if(retry>= 5):
+                print(USB_DRIVE_PATH + " access error!!")
+                driveSelect = 0
+                break;
+    else:
+        print("'USBDRIVE' with 'validate.txt' file found.")
+        driveSelect = 0
+        
 
 
 """############################################################################
@@ -102,7 +115,7 @@ def set_path_invalid():
 
 def validate_usb_write():
 
-    global PathValid, DRIVE_PATH, AUTH_PATH
+    global PathValid, USB_DRIVE_PATH, AUTH_PATH
 
     # if we already know the path isn't valid, this check isn't needed.
     if PathValid == False:
@@ -129,11 +142,11 @@ def validate_usb_write():
             # not the USB drive. This happens rarely, when attempting a write
             # to a USB that doesn't exist. Linux will create a temporary
             # location, and will appear to be logging to the USB, but isn't.
-            rmtree(DRIVE_PATH, ignore_errors = True)
+            rmtree(USB_DRIVE_PATH, ignore_errors = True)
 
             # if the path no longer exists then rmtree worked, and the
             # incorrect path was deleted.
-            if not (os.path.isdir(DRIVE_PATH)):
+            if not (os.path.isdir(USB_DRIVE_PATH)):
                 print("path corruption corrected")
 
 
@@ -150,7 +163,7 @@ def validate_usb_write():
 ############################################################################"""
 
 
-def start_new_file():
+def start_new_file(status):
 
     global PathValid, FileName, FilePath, dataIndex
 
@@ -161,10 +174,18 @@ def start_new_file():
     FileName = str("_".join(FileName.split(".")))
     FileName = str("_".join(FileName.split("-")))
     FileName = FileName + ".txt"
-    FilePath = DRIVE_PATH + FileName
+    if(status == True):
+        FilePath = USB_DRIVE_PATH + FileName
+        FILE_DRIVE_PATH = USB_DRIVE_PATH
+        driveSelect = 0
+    else:
+        FilePath = FLASH_DRIVE_PATH + FileName
+        FILE_DRIVE_PATH = FLASH_DRIVE_PATH
+        driveSelect = 1
 
+    
     # if the drive path exists...
-    if (os.path.isdir(DRIVE_PATH)):
+    if (os.path.isdir(FILE_DRIVE_PATH)):
 
         # create a new blank file. If this file existed, which it shouldn't,
         # open with 'w' would overwrite it.
@@ -216,7 +237,7 @@ def read_data():
     # so there is no reason to attempt writing to a file.
 
     if (PathValid == False):
-        start_new_file()
+        start_new_file(driveSelect)
         if (PathValid == False):
             return
 
@@ -278,15 +299,16 @@ def read_data():
         # if the file doesn't exist, but the drive path still exsists, then it
         # is possible that the file was deleted while in use.
 
-        elif (os.path.isdir(DRIVE_PATH)):
-            start_new_file()
-
+        elif (os.path.isdir(USB_DRIVE_PATH)):
+            start_new_file(0)
+        elif (os.path.isdir(FLASH_DRIVE_PATH)):
+            start_new_file(1)
         else:
             set_path_invalid()
 
     except:
-
         print("write failed")
+        return False
 
     # if the number of rows written to the data file exceeds MAX_ROWS_IN_FILE
     # start a new file. This was added to address an issue where Excel would
@@ -295,7 +317,8 @@ def read_data():
     # closer to 1048576.
 
     if (dataIndex >= MAX_ROWS_IN_FILE):
-        start_new_file()
+        start_new_file(driveSelect)
+        return True
 
 
 """############################################################################
@@ -310,7 +333,7 @@ def main():
     global ser
 
     ser = serial.Serial()
-    ser.baudrate = 115200
+    ser.baudrate = BAUD_RATE
     ser.timeout = None
     ser.port = '/dev/ttyS0'
 
@@ -321,12 +344,12 @@ def main():
     
     chk_usb_on_start()
 
-    start_new_file()
+    start_new_file(driveSelect)
 
+    loop = True
     try:
-        while (True):
-            read_data()
-
+        while (loop):
+            loop = read_data()
     finally:
         ser.close
         print("Serial port is open: ", ser.isOpen())
@@ -346,7 +369,6 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 
 """############################################################################
     End of File: datalogger.py
