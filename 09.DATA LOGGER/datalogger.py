@@ -62,7 +62,7 @@ def chk_usb_on_start():
             
             if(retry>= 5):
                 print(USB_DRIVE_PATH + " access error!!")
-                driveSelect = 0
+                driveSelect = 1
                 break;
     else:
         print("'USBDRIVE' with 'validate.txt' file found.")
@@ -174,7 +174,7 @@ def start_new_file(status):
     FileName = str("_".join(FileName.split(".")))
     FileName = str("_".join(FileName.split("-")))
     FileName = FileName + ".txt"
-    if(status == True):
+    if(status == False):
         FilePath = USB_DRIVE_PATH + FileName
         FILE_DRIVE_PATH = USB_DRIVE_PATH
         driveSelect = 0
@@ -294,7 +294,8 @@ def read_data():
                     
             mFile.close()
             #dataIndex += 1
-            validate_usb_write()
+            if not driveSelect:
+                validate_usb_write()
 
         # if the file doesn't exist, but the drive path still exsists, then it
         # is possible that the file was deleted while in use.
