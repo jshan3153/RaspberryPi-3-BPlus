@@ -9,6 +9,7 @@ import sys                  #import system package
 import RPi.GPIO as GPIO
 import threading
 import http.client
+import socket
 
 gpgga_info = "$GPGGA,"
 
@@ -22,6 +23,8 @@ txtime = 0
 txlat = 0
 txlon = 0
 txready = 0
+boot_flag = 0    #1:boot 0: not boot
+network_flag = 0 #1:connect 0:not conect
 
 def GPS_Info():
     global NMEA_buff
@@ -75,7 +78,7 @@ def convert_to_degrees(raw_value):
     position = "%.4f" %(position)
     return position
 
-def send_to_server(reportType):
+def send_to_server():
     print('send2server')
     global txready
     global txtime
@@ -83,30 +86,64 @@ def send_to_server(reportType):
     global txlon
     usim = "89314404000652546186" #"89314404000476684577"
     
-    timer=threading.Timer(60, send_to_server, args=['1'])
+    timer=threading.Timer(5, send_to_server, args=[boot_flag])
     timer.start()
 
-    conn = http.client.HTTPSConnection("protocol.cleancitynetworks.com")
+    if network_flag:
+        conn = http.client.HTTPSConnection("protocol.cleancitynetworks.com")
 
-    headers = {
-      'Content-Type': 'text/plain'
-    }
-    
-    if txready == 1:
-        payload = usim + "26990010010304"+reportType+"00000800251000#"+txtime+'+'+txlat+'+'+txlon+"20#"
-        #print(payload)
-        txready = 0
+        headers = {
+          'Content-Type': 'text/plain'
+        }
+        
+        if txready == 1:
+            payload = usim + "26990010010304"+str(boot_flag)+"00000800251000#"+txtime+'+'+txlat+'+'+txlon+"20#"
+            #print(payload)
+            txready = 0
+        else:
+            payload = usim + "26990010010304"+str(boot_flag)+"00000800251000##"    
+            print('tx not ready')
+
+        conn.request("POST", "/ttk", payload, headers)
+        res = conn.getresponse()
+        data = res.read()
+        print(data.decode("utf-8"))
+        
+        if boot_flag == 0:
+            if data[0] == '2' and data[1] == '0' and data[2] == '0':
+                boot_flag = 1
+                print("boot complete")
     else:
-        payload = usim + "26990010010304"+reportType+"00000800251000##"    
-        print('tx not ready')
-
-    conn.request("POST", "/ttk", payload, headers)
-    res = conn.getresponse()
-    data = res.read()
-    print(data.decode("utf-8"))
+        print("not send")
 
     return
+
+def check_to_network():
+    global network_flag
+    print("check network")
+    '''
+    if not connect internet
+    return 127.0.0.1
+    '''
+    #ipAddress = socket.gethostbyname(socket.gethostname())
+    hostname = 'www.naver.com'
     
+    try:
+        ipAddress = socket.gethostbyname(hostname)
+        print("IP ADDRESS {} is : {}".format(hostname, ipAddress))
+        print("IP ADDRESS " + hostname + " is : " + ipAddress)
+        network_flag = 1
+        print(ipAddress)
+    except socket.gaierror:
+        print("ignoreing failed address lookup")
+        ipAddress = '127.0.0.1'
+        network_flag = 0
+        
+    timer=threading.Timer(5, check_to_network)
+    timer.start()
+
+    return network_flag
+
 def main():
     global ser
     global lat_in_degrees
@@ -138,9 +175,12 @@ def main():
     GPIO.output(38, GPIO.LOW)
     GPIO.output(40, GPIO.LOW)
 
-    #set timer
-    send_to_server('0')
+    #check network
+    status = check_to_network()
     
+    if status == 1:
+        send_to_server('0')
+
     try:
         while True:
             received_data = (str)(ser.readline())                   #read NMEA string received
