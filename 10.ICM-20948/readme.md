@@ -19,6 +19,13 @@
   https://m.blog.naver.com/PostView.naver?isHttpsRedirect=true&blogId=jihoonine&logNo=221854558852  
   https://invensense.tdk.com/products/motion-tracking/9-axis/icm-20948/   
   https://steemit.com/kr-arduino/@codingman/mpu-6050-processing   
+  https://ddtxrx.tistory.com/entry/STM32-%EA%B0%84%EB%8B%A8%ED%95%9C-ICM20948-%EC%BF%BC%ED%84%B0%EB%8B%88%EC%96%B8   
+  https://github.com/vedranMv/dataDashboard  : 대시보드    
+  https://github.com/vedranMv/tm4c_icm20948   
+  https://mokhwasomssi.tistory.com/74    
+  https://jeegs.cafe24.com/#   
+  https://m.blog.naver.com/codingbird/221766900497    
+  
   
   
    
