@@ -29,7 +29,7 @@ $cat /proc/device-tree/model
 	$sudo apt install fonts-nanum
 	
 	3.2 키보드 설치
-	$sudo apt intsll fcitx fcitx-hangul
+	$sudo apt install fcitx fcitx-hangul
 
 	3.3 관리자 권한으로 파일 매니저 실행
 	$ sudo pcmanfm
