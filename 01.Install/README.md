@@ -36,6 +36,8 @@ $cat /proc/device-tree/model
 	$ cd /etc/default/im-config
 	IM_CONFIG_DEFAULT_MODE=AUTO -> fcitx 변경
 	기본 설정 > 입력기 
+ 	$ cd /etc/default/im-config 파일이 없는 경우
+  	$ sudo apt install im-config 설치
 	
 ## 4. gcc 컴파일을 위한 설정
 	4.1 wiringPI 설치
